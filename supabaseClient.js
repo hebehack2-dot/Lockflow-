@@ -1,82 +1,76 @@
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * Safely retrieves environment variables from common storage locations in 
- * Vite, Webpack, and Vercel environments.
+ * Robust environment variable loader.
+ * In Vite (used by your Vercel deployment), variables MUST be prefixed 
+ * with VITE_ to be visible in the browser.
  */
 const getEnv = (name) => {
+  const viteName = `VITE_${name}`;
   try {
-    // Check process.env (Standard/Vercel)
-    if (typeof process !== "undefined" && process.env && process.env[name]) return process.env[name];
-    
-    // Check import.meta.env (Vite)
+    // 1. Try Vite's specific env object
     if (typeof import.meta !== "undefined" && import.meta.env) {
+      if (import.meta.env[viteName]) return import.meta.env[viteName];
       if (import.meta.env[name]) return import.meta.env[name];
-      if (import.meta.env[`VITE_${name}`]) return import.meta.env[`VITE_${name}`];
+    }
+    // 2. Try standard process.env (Build-time injection)
+    if (typeof process !== "undefined" && process.env) {
+      if (process.env[viteName]) return process.env[viteName];
+      if (process.env[name]) return process.env[name];
     }
   } catch (e) {
-    // Fail silently
+    console.warn(`Error reading env var ${name}:`, e);
   }
   return "";
 };
 
-const SUPABASE_URL = getEnv("SUPABASE_URL") || "https://gdoklosrdlxogtdrywhi.supabase.co";
-const SUPABASE_ANON_KEY = getEnv("SUPABASE_ANON_KEY") || "sb_publishable_WVkMtDdclClWRdQmx4sTQA_wMlDccgk";
+const SUPABASE_URL = getEnv("SUPABASE_URL");
+const SUPABASE_ANON_KEY = getEnv("SUPABASE_ANON_KEY");
 
-/**
- * Supabase keys MUST be valid JWTs. 
- * Providing a placeholder like 'sb_publishable_...' will cause createClient to THROW a fatal error,
- * resulting in a black screen. This check prevents that crash.
- */
-const isJWT = (token) => token && typeof token === 'string' && token.split('.').length === 3;
+// A valid Supabase key is a JWT (3 parts separated by dots, starting with eyJ)
+const isLikelyValidKey = (token) => {
+  if (!token || typeof token !== 'string') return false;
+  // Supabase keys are long JWTs. Stripe keys (which start with sb_ or pk_) will fail this.
+  return token.length > 50 && token.includes('.') && token.startsWith('eyJ');
+};
 
 let client = null;
-let configured = false;
+let configState = "missing"; // "missing" | "invalid_format" | "ready"
 
-if (SUPABASE_URL && isJWT(SUPABASE_ANON_KEY)) {
-  try {
-    // Attempt initialization
-    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    configured = true;
-  } catch (err) {
-    console.error("Supabase client failed to initialize:", err);
+if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  if (isLikelyValidKey(SUPABASE_ANON_KEY)) {
+    try {
+      client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      configState = "ready";
+    } catch (err) {
+      console.error("Supabase Init Error:", err);
+      configState = "error";
+    }
+  } else {
+    configState = "invalid_format";
   }
 }
 
-/**
- * We export a 'mock' supabase object if initialization fails.
- * This prevents the rest of the application components from crashing when they 
- * try to access properties like 'supabase.auth'.
- */
+// Export the client or a safe mock
 export const supabase = client || {
   auth: {
     getSession: () => Promise.resolve({ data: { session: null }, error: null }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-    signInWithPassword: () => Promise.reject(new Error("Supabase is not configured with a valid JWT key.")),
-    signUp: () => Promise.reject(new Error("Supabase is not configured.")),
+    signInWithPassword: () => Promise.reject(new Error("Supabase not configured.")),
+    signUp: () => Promise.reject(new Error("Supabase not configured.")),
     signOut: () => Promise.resolve({ error: null }),
-    resend: () => Promise.reject(new Error("Supabase is not configured."))
+    resend: () => Promise.reject(new Error("Supabase not configured."))
   },
   from: () => ({
-    select: () => ({
-      eq: () => ({
-        single: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }),
-        order: () => Promise.resolve({ data: [], error: { message: "Supabase not configured" } })
-      })
-    }),
+    select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }), order: () => Promise.resolve({ data: [] }) }) }),
     insert: () => Promise.reject(new Error("Supabase not configured")),
     delete: () => ({ eq: () => Promise.reject(new Error("Supabase not configured")) })
   }),
-  storage: {
-    from: () => ({
-      upload: () => Promise.reject(new Error("Supabase not configured")),
-      createSignedUrl: () => Promise.resolve({ data: null, error: { message: "Supabase not configured" } }),
-      remove: () => Promise.reject(new Error("Supabase not configured"))
-    })
-  },
+  storage: { from: () => ({ upload: () => Promise.reject(new Error("Supabase not configured")), createSignedUrl: () => Promise.resolve({ data: null }) }) },
   rpc: () => Promise.reject(new Error("Supabase not configured"))
 };
 
-export const isSupabaseConfigured = configured;
+export const isSupabaseConfigured = configState === "ready";
+export const supabaseConfigError = configState;
 export const STORAGE_BUCKET = "Lockflow";
