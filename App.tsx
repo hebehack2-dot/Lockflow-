@@ -8,28 +8,6 @@ import { analyzeEngagement } from './services/geminiService';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { uploadFile, getSignedUrl, deleteFile } from './services/storageService';
 
-// --- Configuration Error Screen ---
-const ConfigErrorScreen = () => (
-  <div className="min-h-screen flex items-center justify-center p-6 gradient-bg">
-    <GlassCard className="max-w-md w-full p-10 border border-red-500/20 text-center shadow-2xl">
-      <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-8 border border-red-500/20">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </div>
-      <h2 className="text-2xl font-black uppercase tracking-tight mb-4 text-white">Config Missing</h2>
-      <p className="text-gray-400 text-sm mb-8 leading-relaxed">
-        Supabase environment variables were not detected. To fix the "Black Screen" and enable core features:
-      </p>
-      <div className="text-left bg-black/40 p-4 rounded-xl border border-white/5 font-mono text-xs text-gray-300 space-y-3 mb-8">
-        <p>1. Go to Vercel Dashboard</p>
-        <p>2. Add <span className="text-[#00F5FF]">SUPABASE_URL</span></p>
-        <p>3. Add <span className="text-[#00F5FF]">SUPABASE_ANON_KEY</span></p>
-        <p>4. Redeploy your application</p>
-      </div>
-      <Button fullWidth onClick={() => window.location.reload()}>Refresh Page</Button>
-    </GlassCard>
-  </div>
-);
-
 // --- Auth Guard ---
 const ProtectedRoute = ({ children }: React.PropsWithChildren<{}>) => {
   const [session, setSession] = useState<any>(null);
@@ -181,7 +159,6 @@ const AuthPage = ({ mode }: { mode: 'login' | 'signup' }) => {
       }
     } catch (err: any) {
       console.error("Auth Error Trace:", err);
-      
       const message = err.message || "";
       const status = err.status;
       
@@ -316,7 +293,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   
-  // Resource Form State
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState({
     title: '',
@@ -715,10 +691,6 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
     return () => subscription.unsubscribe();
   }, []);
-
-  if (!isSupabaseConfigured) {
-    return <ConfigErrorScreen />;
-  }
 
   return (
     <Router>
