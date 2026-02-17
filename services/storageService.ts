@@ -1,5 +1,4 @@
-
-import { supabase, STORAGE_BUCKET } from '../supabaseClient';
+import { supabase, STORAGE_BUCKET } from '../supabaseClient.js';
 
 export const uploadFile = async (
   file: File,
@@ -10,8 +9,9 @@ export const uploadFile = async (
   if (!user) throw new Error("Authentication required for upload");
 
   const fileExt = file.name.split('.').pop();
-  const fileName = `${crypto.randomUUID()}.${fileExt}`;
-  const filePath = `${user.id}/${featureName}/${itemId}/${fileName}`;
+  const uuid = crypto.randomUUID();
+  // Format: {uid}/{featureName}/{itemId}/{uuid}.{extension}
+  const filePath = `${user.id}/${featureName}/${itemId}/${uuid}.${fileExt}`;
 
   const { error: uploadError, data } = await supabase.storage
     .from(STORAGE_BUCKET)
@@ -23,15 +23,24 @@ export const uploadFile = async (
 };
 
 export const getSignedUrl = async (path: string) => {
+  if (!path) return '';
+  // If it's already a full URL (external), return as is
+  if (path.startsWith('http')) return path;
+
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKET)
     .createSignedUrl(path, 3600); // 1 hour expiry
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error creating signed URL:", error);
+    return '';
+  }
   return data.signedUrl;
 };
 
 export const deleteFile = async (path: string) => {
+  if (!path || path.startsWith('http')) return;
+  
   const { error } = await supabase.storage
     .from(STORAGE_BUCKET)
     .remove([path]);
