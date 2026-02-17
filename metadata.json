@@ -1,0 +1,8 @@
+{
+  "name": "LockFlow - Creator Content Gateway",
+  "description": "A premium platform for creators to share locked resources like PDFs, tools, and guides, requiring users to complete tasks or enter codes to unlock them. Featuring a dark neon futuristic UI with deep analytics and smart engagement tools.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
