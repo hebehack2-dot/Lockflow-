@@ -16,34 +16,38 @@ const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
   "sb_publishable_WVkMtDdclClWRdQmx4sTQA_wMlDccgk";
 
+// Helper to check if key looks valid (Supabase keys are long JWTs, not Stripe keys)
+const isValidKey = SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.length > 40;
+
 let client;
 
-try {
-  // We initialize the client but catch errors to prevent the "black screen" crash on mount.
-  client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (err) {
-  console.error("Supabase Initialization Error:", err);
+if (isValidKey) {
+  try {
+    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (err) {
+    console.error("Supabase Initialization Error:", err);
+  }
 }
 
 // Export the client. If it failed to initialize, we export a fallback to keep the app running.
 export const supabase = client || {
   auth: {
-    getSession: () => Promise.resolve({ data: { session: null } }),
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    getUser: () => Promise.resolve({ data: { user: null } }),
-    signInWithPassword: () => Promise.reject(new Error("Supabase key error")),
-    signUp: () => Promise.reject(new Error("Supabase key error")),
-    signOut: () => Promise.resolve({}),
-    resend: () => Promise.reject(new Error("Supabase key error"))
+    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+    signInWithPassword: () => Promise.reject(new Error("Supabase is not configured correctly. Check your API Keys.")),
+    signUp: () => Promise.reject(new Error("Supabase is not configured correctly. Check your API Keys.")),
+    signOut: () => Promise.resolve({ error: null }),
+    resend: () => Promise.reject(new Error("Supabase is not configured correctly."))
   },
   from: () => ({
-    select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }), order: () => Promise.resolve({ data: [] }) }) }),
-    insert: () => Promise.reject(new Error("Supabase key error")),
-    delete: () => ({ eq: () => Promise.reject(new Error("Supabase key error")) })
+    select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: { message: "Config error" } }), order: () => Promise.resolve({ data: [], error: { message: "Config error" } }) }) }),
+    insert: () => Promise.reject(new Error("Supabase not configured")),
+    delete: () => ({ eq: () => Promise.reject(new Error("Supabase not configured")) })
   }),
-  storage: { from: () => ({ upload: () => Promise.reject(new Error("Supabase key error")), createSignedUrl: () => Promise.resolve({ data: null }), remove: () => Promise.reject(new Error("Supabase key error")) }) },
-  rpc: () => Promise.reject(new Error("Supabase key error"))
+  storage: { from: () => ({ upload: () => Promise.reject(new Error("Supabase not configured")), createSignedUrl: () => Promise.resolve({ data: null }), remove: () => Promise.reject(new Error("Supabase not configured")) }) },
+  rpc: () => Promise.reject(new Error("Supabase not configured"))
 };
 
-export const isSupabaseConfigured = !!SUPABASE_ANON_KEY;
+export const isSupabaseConfigured = isValidKey;
 export const STORAGE_BUCKET = "Lockflow";
