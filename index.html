@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -46,6 +45,10 @@
             background: #444;
         }
     </style>
+    <script>
+        // Critical shim for process.env to prevent ReferenceError crashes in browser ESM environments
+        window.process = window.process || { env: {} };
+    </script>
 <script type="importmap">
 {
   "imports": {

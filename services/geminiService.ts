@@ -1,9 +1,20 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAI = () => {
+    try {
+        const apiKey = process.env.API_KEY;
+        if (!apiKey) return null;
+        return new GoogleGenAI({ apiKey });
+    } catch (e) {
+        console.warn("Gemini AI initialization skipped: process.env.API_KEY not found.");
+        return null;
+    }
+};
 
 export const generateSmartDescription = async (resourceName: string, targetAudience: string) => {
+  const ai = getAI();
+  if (!ai) return "AI services are currently unavailable. (Missing API Key)";
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -21,6 +32,9 @@ export const generateSmartDescription = async (resourceName: string, targetAudie
 };
 
 export const analyzeEngagement = async (stats: any) => {
+  const ai = getAI();
+  if (!ai) return "Engagement insights currently unavailable.";
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
