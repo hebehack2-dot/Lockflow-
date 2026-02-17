@@ -15,33 +15,24 @@ export interface SocialLinks {
 export interface Creator {
   id: string;
   username: string;
-  brandName: string;
-  email: string;
-  profileImage: string;
-  bannerImage: string;
+  brand_name: string;
+  email?: string;
+  profile_image: string;
+  banner_image: string;
   bio: string;
   socials: SocialLinks;
-  stats: {
-    totalUnlocks: number;
-    totalVisitors: number;
-    engagementScore: number;
-  };
 }
 
 export interface Resource {
   id: string;
-  creatorId: string;
+  creator_id: string;
   title: string;
   description: string;
-  fileType: 'PDF' | 'ZIP' | 'IMAGE' | 'DOC' | 'LINK';
-  fileUrl: string;
-  unlockMethod: UnlockMethod;
-  unlockRequirement: string; // The code, the YT link, or seconds
-  previewImage: string;
-  createdAt: string;
-  unlockCount: number;
-}
-
-export interface UserSession {
-  unlockedResourceIds: string[];
+  file_type: 'PDF' | 'ZIP' | 'IMAGE' | 'DOC' | 'LINK';
+  file_url: string;
+  unlock_method: UnlockMethod;
+  unlock_requirement: string;
+  preview_image: string;
+  created_at: string;
+  unlock_count: number;
 }

@@ -6,6 +6,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   fullWidth?: boolean;
   isLoading?: boolean;
+  // Explicitly add children for React 18+ compatibility
+  children?: React.ReactNode;
 }
 
 const Button: React.FC<ButtonProps> = ({ 
